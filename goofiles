@@ -1,4 +1,3 @@
-#!/home/santy/anaconda3/bin/python
 import requests as rq
 from bs4 import BeautifulSoup
 from clint.textui import progress
