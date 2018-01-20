@@ -1,0 +1,79 @@
+#!/home/santy/anaconda3/bin/python
+import requests as rq
+from bs4 import BeautifulSoup
+from clint.textui import progress
+
+
+class Search:
+    def __init__(self, query, document_type="pdf", page=1):
+        self.query = query
+        self.document_type = document_type
+        self.index = 0
+        self.page = page
+        self.domain = "https://www.google.com"
+        self.url = "/search?client=ubuntu&channel=fs&q=" + self.transform() + "+" + self.document_type + "&ie=utf-8&oe=utf-8&gfe_rd=cr&dcr=0&ei=3G8aWqzEA4qjX_ucitAL"
+        self.data = dict()
+        for i in range(0,self.page):
+            self.get_page()
+
+    def transform(self):
+        self.query = self.query.split(" ")
+        self.query = "+".join(self.query)
+        return self.query
+
+    def get_page(self):
+        url_page = self.domain + self.url
+        response = rq.get(url_page)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        h3 = soup.find_all('h3')
+        a = soup.findAll("a", {"class": "fl"})
+        for i in h3:
+            i = BeautifulSoup(str(i), 'xml')
+            href = str(i.a['href']).split('&')[0].split('=')[-1]
+            if href.endswith("." + self.document_type):
+                text = i.a.text
+                self.data[self.index] = [href, text]
+                self.index += 1
+        for j in a:
+            J = BeautifulSoup(str(j), 'xml')
+            if j.text == 'Next':
+                self.url = j['href']
+
+    def pages(self):
+        return self.data
+
+
+def download(url, filename):
+    r = rq.get(url, stream=True)
+    with open(filename, 'wb') as f:
+        print(filename, "<==", url)
+        total_length = int(r.headers.get('content-length'))
+        for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length/1024) + 1):
+            if chunk:
+                f.write(chunk)
+                f.flush()
+
+
+def main():
+    query = input("Query :")
+    document_type = input("Document format : ")
+    pages = int(input("page(s) :"))
+    app = Search(query, document_type, pages)
+    pages = app.pages()
+    url = []
+    filenames = []
+    print("Results:  " + str(len(app.pages())))
+    for i in range(0, len(pages)):
+        url.append(pages[i][0])
+        a = pages[i][1].replace("-", "")
+        a = a.replace("  ", " ")
+        a = a.split(' ')
+        a = "_".join(a)
+        a = a + "." + document_type
+        filenames.append(a)
+    for i in range(0, len(pages)):
+        download(url[i], filenames[i])
+
+
+if __name__ == "__main__":
+    main()
