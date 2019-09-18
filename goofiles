@@ -1,4 +1,5 @@
 #/bin/env/python3
+
 import requests as rq
 from bs4 import BeautifulSoup
 from clint.textui import progress
